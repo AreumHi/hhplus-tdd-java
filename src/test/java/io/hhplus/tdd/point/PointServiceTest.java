@@ -1,6 +1,7 @@
 package io.hhplus.tdd.point;
 
 import io.hhplus.tdd.database.UserPointTable;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -89,7 +90,7 @@ class PointServiceTest {
     }
 
     @Test
-    @DisplayName("포인트 최대 한도에 딱 맞는 값 - 경계값 테스트")
+    @DisplayName("포인트 최대 한도에 딱 맞는 값을 충전한다 - 경계값 테스트")
     void chargePoint_MAX_POINT_souldSucceed() {
         // given
         long userId = 1L;
@@ -114,7 +115,7 @@ class PointServiceTest {
 
     // 충전 예외
     @Test
-    @DisplayName("0원 충전 시 예외 발생")
+    @DisplayName("충전금액이 0원일 경우 예외 발생")
     void chargePoint_zeroAmount_throwException() {
         // given
         long userId = 1L;
@@ -129,7 +130,7 @@ class PointServiceTest {
     }
 
     @Test
-    @DisplayName("음수 충전 시 예외 발생")
+    @DisplayName("음수 충전 할 경우 예외 발생")
     void chargePoint_negativeAmount_throwException() {
         // given
         long userId = 1L;
@@ -143,7 +144,7 @@ class PointServiceTest {
     }
 
     @Test
-    @DisplayName("포인트 최대 한도 초과 시 예외 발생")
+    @DisplayName("최대 포인트 한도 초과 할 경우 예외 발생")
     void chargePoint_maxLimit_throwException() {
         // given
         long userId = 1L;
@@ -160,8 +161,77 @@ class PointServiceTest {
         assertEquals(String.format("최대 포인트 한도(%d)를 초과할 수 없습니다.", MAX_POINT), exception.getMessage());
     }
 
-    // TODO: 포인트 "사용" 테스트 케이스 구현
-    // 잔고가 부족할 경우, 포인트 사용은 실패 하여야 한다.
+    // 사용 성공
+    @Test
+    @DisplayName("충분한 포인트가 있는 유저의 포인트를 사용한다")
+    void usePoint_enoughBalance() {
+        // given
+        long userId = 1L;
+        long currentPoint = 10_000L;
+        long useRequestAmount = 1_000L;
+        long expectedNewPoint = currentPoint - useRequestAmount;
+
+        UserPoint mockPoint = new UserPoint(userId, currentPoint, System.currentTimeMillis());
+        when(userPointTable.selectById(userId)).thenReturn(mockPoint);
+
+        UserPoint newPoint = new UserPoint(userId, expectedNewPoint, System.currentTimeMillis());
+        when(userPointTable.insertOrUpdate(userId, expectedNewPoint)).thenReturn(newPoint);
+
+        // when
+        UserPoint result = pointService.usePoint(userId, useRequestAmount);
+
+        // then
+        assertNotNull(result);
+        assertEquals(expectedNewPoint, result.point());
+        assertEquals(userId, result.id());
+    }
+
+    // 사용 예외
+    @Test
+    @DisplayName("포인트 잔액이 부족 할 경우 예외 발생")
+    void usePoint_insufficientBalance_throwException() {
+        // given
+        long userId = 1L;
+        long currentPoint = 5_000L;
+        long useRequestAmount = 10_000L;
+
+        UserPoint mockPoint = new UserPoint(userId, currentPoint, System.currentTimeMillis());
+        when(userPointTable.selectById(userId)).thenReturn(mockPoint);
+
+        // when & then
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+           pointService.usePoint(userId, useRequestAmount);
+        });
+        assertEquals(String.format("포인트가 부족합니다. 현재 포인트: %d, 사용 요청 금액: %d", currentPoint, useRequestAmount), exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("사용금액이 0원일 경우 예외 발생")
+    void usePoint_zeroAmount_throwException() {
+        // given
+        long userId = 1L;
+        long useRequestAmount = 0L;
+
+        // when & then
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            pointService.usePoint(userId, useRequestAmount);
+        });
+        assertEquals("사용 금액은 1원 이상이어야 합니다.", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("음수 사용 할 경우 예외 발생")
+    void usePoint_negativeAmount_throwException() {
+        // given
+        long userId = 1L;
+        long useRequestAmount = -5_000L;
+
+        // when & then
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            pointService.usePoint(userId, useRequestAmount);
+        });
+        assertEquals("사용 금액은 1원 이상이어야 합니다.", exception.getMessage());
+    }
 
     // TODO: 포인트 "내역 조회" 테스트 케이스 구현
 }

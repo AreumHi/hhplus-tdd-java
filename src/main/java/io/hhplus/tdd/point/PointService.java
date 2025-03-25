@@ -47,4 +47,30 @@ public class PointService {
         // 포인트 반영
         return userPointTable.insertOrUpdate(userId, updatePoint);
     }
+
+    /**
+     * 특정 유저의 포인트를 사용한다.
+     * - 포인트 잔액이 부족하면 안된다.
+     * - 사용 금액은 1원 이상이어야 한다.
+     */
+    public UserPoint usePoint(long userId, long useRequestAmount) {
+        // 금액 유효성 체크 (1원 이상인지)
+        if (useRequestAmount <= 0) {
+            throw new IllegalArgumentException("사용 금액은 1원 이상이어야 합니다.");
+        }
+
+        // 현재 포인트 조회
+        UserPoint currentPoint = userPointTable.selectById(userId);
+
+        // 사용 후 업데이트 되어야 할 포인트
+        long updatePoint = currentPoint.point() - useRequestAmount;
+
+        // 포인트 잔액 부족한지 여부 체크
+        if (updatePoint < 0) {
+            throw new IllegalArgumentException(String.format("포인트가 부족합니다. 현재 포인트: %d, 사용 요청 금액: %d", currentPoint.point(), useRequestAmount));
+        }
+
+        // 포인트 반영
+        return userPointTable.insertOrUpdate(userId, updatePoint);
+    }
 }
