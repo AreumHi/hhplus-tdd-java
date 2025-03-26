@@ -1,7 +1,12 @@
 package io.hhplus.tdd.point;
 
+import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
 import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 import static io.hhplus.tdd.common.Constants.MAX_POINT;
 
@@ -10,8 +15,11 @@ public class PointService {
 
     private final UserPointTable userPointTable;    // 생성자 주입으로 받아서 사용 ( = @RequiredArgsConstructor)
 
-    public PointService(UserPointTable userPointTable) {
+    private final PointHistoryTable pointHistoryTable;
+
+    public PointService(UserPointTable userPointTable, PointHistoryTable pointHistoryTable) {
         this.userPointTable = userPointTable;
+        this.pointHistoryTable = pointHistoryTable;
     }
 
     /**
@@ -72,5 +80,18 @@ public class PointService {
 
         // 포인트 반영
         return userPointTable.insertOrUpdate(userId, updatePoint);
+    }
+
+    /**
+     * 특정 유저의 포인트 이용(충전/사용) 내역을 조회한다.
+     * - 포인트 이용 내역이 없는 유저는 빈 리스트를 반환한다.
+     * - selectAllByUserId 가 null 을 반환하면 빈 리스트로 처리한다
+     */
+    public List<PointHistory> getHistories(long userId) {
+
+        List<PointHistory> userHistoryList = pointHistoryTable.selectAllByUserId(userId);
+
+        return Optional.ofNullable(pointHistoryTable.selectAllByUserId(userId))
+                .orElse(Collections.emptyList());
     }
 }

@@ -1,13 +1,17 @@
 package io.hhplus.tdd.point;
 
+import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static io.hhplus.tdd.common.Constants.MAX_POINT;
 import static org.mockito.Mockito.*;
@@ -18,6 +22,9 @@ class PointServiceTest {
 
     @Mock
     private UserPointTable userPointTable;
+
+    @Mock
+    private PointHistoryTable pointHistoryTable;
 
     @InjectMocks
     private PointService pointService;
@@ -233,5 +240,59 @@ class PointServiceTest {
         assertEquals("사용 금액은 1원 이상이어야 합니다.", exception.getMessage());
     }
 
-    // TODO: 포인트 "내역 조회" 테스트 케이스 구현
+    // 이용 내역 조회
+    @Test
+    @DisplayName("특정 유저의 포인트 이용(충전/사용) 내역을 조회한다")
+    void getHistory_existingUser() {
+        // given
+        long userId = 1L;
+        long now = System.currentTimeMillis();
+
+        List<PointHistory> mockPointHistoryList = List.of(
+                new PointHistory(1L, userId, 10_000L, TransactionType.CHARGE, now - 10_000),
+                new PointHistory(2L, userId, 5_000L, TransactionType.USE, now - 5_000),
+                new PointHistory(3L, userId, 3_000L, TransactionType.USE, now - 3_000)
+        );
+
+        when(pointHistoryTable.selectAllByUserId(userId)).thenReturn(mockPointHistoryList);
+
+        // when
+        List<PointHistory> result = pointService.getHistories(userId);
+
+        // then
+        assertNotNull(result);
+        assertEquals(mockPointHistoryList.size(), result.size());
+        assertIterableEquals(mockPointHistoryList, result);
+    }
+
+    @Test
+    @DisplayName("포인트 이용 내역이 없는 유저는 빈 리스트를 반환한다")
+    void getHistory_noHistory_returnEmptyList() {
+        // given
+        long userId = 999L;
+
+        when(pointHistoryTable.selectAllByUserId(userId)).thenReturn(Collections.emptyList());
+
+        // when
+        List<PointHistory> result = pointService.getHistories(userId);
+
+        // then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("selectAllByUserId 가 null 을 반환하면 빈 리스트로 처리한다")
+    void getHistory_nullUser_returnEmptyList() {
+        // given
+        long userId = 1L;
+        when(pointHistoryTable.selectAllByUserId(userId)).thenReturn(null);
+
+        // when
+        List<PointHistory> result = pointService.getHistories(userId);
+
+        // then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
 }
