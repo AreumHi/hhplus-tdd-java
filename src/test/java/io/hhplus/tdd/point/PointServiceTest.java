@@ -161,6 +161,7 @@ class PointServiceTest {
         UserPoint mockPoint = new UserPoint(userId, currentPoint, System.currentTimeMillis());
         when(userPointTable.selectById(userId)).thenReturn(mockPoint);
 
+
         // when & then
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
             pointService.chargePoint(userId, chargeAmount);
