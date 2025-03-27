@@ -21,6 +21,11 @@ public class PointService {
         this.pointHistoryTable = pointHistoryTable;
     }
 
+    // TODO: 요구사항-동일한 사용자에 대한 동시 요청이 정상적으로 처리될 수 있도록 개선
+
+    // TODO: 선택한 언어에 대한 동시성 제어 방식 및 각 적용의 장/단점을 기술한 보고서 작성 ( README.md )
+    // 동시성 문제에 대한 학습 및 각 동시성 문제 해결 방식 간 비교/분석
+
     /**
      * 특정 유저의 포인트를 조회한다.
      * - 유저가 존재하지 않으면 0포인트를 반환한다.
@@ -34,7 +39,7 @@ public class PointService {
      * - 충전 금액은 1원 이상이어야 한다.
      * - 포인트 최대 한도를 초과해서는 안된다.
      */
-    public UserPoint chargePoint(long userId, long chargeAmount) {
+    public synchronized UserPoint chargePoint(long userId, long chargeAmount) {
 
         if (chargeAmount <= 0) {
             throw new IllegalArgumentException("충전 금액은 1원 이상이어야 합니다.");
@@ -59,7 +64,7 @@ public class PointService {
      * - 포인트 잔액이 부족하면 안된다.
      * - 사용 금액은 1원 이상이어야 한다.
      */
-    public UserPoint usePoint(long userId, long useRequestAmount) {
+    public synchronized UserPoint usePoint(long userId, long useRequestAmount) {
 
         if (useRequestAmount <= 0) {
             throw new IllegalArgumentException("사용 금액은 1원 이상이어야 합니다.");
